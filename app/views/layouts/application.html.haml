@@ -3,7 +3,7 @@
   %head
     %meta{content: "text/html; charset=UTF-8", "http-equiv": "Content-Type"}/
     %title GMap
-    %script{async: "", defer: "defer", src: "https://maps.googleapis.com/maps/api/js?key=#{ENV['API_KEY']}&callback=initMap"}
+    %script{async: "", defer: "defer", src: "https://maps.googleapis.com/maps/api/js?key=#{ENV['API_KEY']}&libraries=places&callback=initMap"}
     = csrf_meta_tags
     = csp_meta_tag
     = stylesheet_link_tag    'application', media: 'all', 'data-turbolinks-track': 'reload'
