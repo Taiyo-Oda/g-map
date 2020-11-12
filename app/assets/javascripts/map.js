@@ -60,17 +60,6 @@ function codeAddress() {
         position: results[0].geometry.location
       });
       var service = new google.maps.places.PlacesService(map);
-      // let getNextPage;
-      // let moreButton = document.getElementById("more");
-      // moreButton.onclick = function () {
-      //   // moreButtonにdisabled属性を設定（disabled属性を設定するとその値は送信されなくなる）
-      //   moreButton.disabled = true;
-
-      //   // getNextPageが可能な場合
-      //   if (getNextPage) {
-      //     getNextPage();
-      //   }
-      // }
       service.nearbySearch({
         location: results[0].geometry.location,
         radius: 500,
@@ -78,17 +67,10 @@ function codeAddress() {
       }, function(results, status) {
         if (status == google.maps.places.PlacesServiceStatus.OK) {
           createMarkers(results, map);
-          // hasNextPageはさらに結果が利用可能かどうかを示す
-          // moreButton.disabled = !pagination.hasNextPage;
-          // // さらに検索結果が表示可能な場合（pagination.hasNextPageがtrueの場合）
-          // if (pagination.hasNextPage) {
-          //   // nextPage()は次の結果セットを返す関数
-          //   getNextPage = pagination.nextPage;
-          // }
         }
       });
     } else {
-      alert('Geocode was not successful for the following reason: ' + status);
+      alert('次の理由でジオコードが成功しませんでした: ' + status);
     }
   });
 }
@@ -121,7 +103,7 @@ function createMarkers(places, map) {
     // 空の境界変数を取得し、すべてのマーカーを表示するlatとlngを指定
     bounds.extend(place.geometry.location);
   }
-  // mapのサイズを全てのマーカーが表示されるようにする
+  // mapが全てのマーカーが表示されるようなサイズになる
   map.fitBounds(bounds);
 }
 
