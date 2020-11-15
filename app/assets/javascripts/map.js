@@ -1,3 +1,9 @@
+function createMarker(options) {
+  let m = new google.maps.Marker(options);
+  return m;
+}
+
+// マップを作成
 function initMap() {
   // geocoderを初期化しジオコーディングサービスにアクセス
   geocoder = new google.maps.Geocoder()
@@ -15,7 +21,7 @@ function initMap() {
           zoom: 17,
         })
         // マーカーの作成
-        new google.maps.Marker ({
+        createMarker ({
           map: map,
           position: mapLatLng
         })
@@ -44,26 +50,28 @@ function initMap() {
   }
 }
 
+// 地図の移動、周辺情報の取得
 function codeAddress() {
+  // document.getElementById("map").innerHTML = "";
   // id=addressのinputタグに記入された値（value）を取得
   let inputAddress = document.getElementById('address').value;
-
+  let inputStoreName = document.getElementById('storeName').value;
   // ジオコーディングサービスにリクエストを行なう。コールバックには results と status コードの順で2つのパラメータが渡される。
   geocoder.geocode({'address': inputAddress}, function (results, status) {
     if (status == 'OK') {
       // map.setCenterで地図が移動（location には緯度経度の値が含まれる）
       map.setCenter(results[0].geometry.location);
       // google.maps.MarkerでGoogleMap上の指定位置にマーカが立つ
-      var marker = new google.maps.Marker({
+      createMarker({
         // マーカーのオプション
         map: map,
         position: results[0].geometry.location
       });
       var service = new google.maps.places.PlacesService(map);
-      service.nearbySearch({
+      service.textSearch({
         location: results[0].geometry.location,
         radius: 500,
-        type: ['store']
+        query: inputStoreName
       }, function(results, status) {
         if (status == google.maps.places.PlacesServiceStatus.OK) {
           createMarkers(results, map);
@@ -75,12 +83,14 @@ function codeAddress() {
   });
 }
 
+// map上にマーカーを作成
 function createMarkers(places, map) {
   // LatLngBoundsクラスは境界(範囲)のインスタンスを作成する（ここでは空の境界変数を作成）
   const bounds = new google.maps.LatLngBounds();
   const placesList = document.getElementById("places");
-  // 地図上に表示するMarkerのimageを作成
+  // textSearchした店のマーカーを１つずつ作成
   for (let i = 0, place; (place = places[i]); i++) {
+    // 地図上に表示するMarkerのimageを作成
     const image = {
       url: place.icon,
       size: new google.maps.Size(71, 71),
@@ -89,7 +99,7 @@ function createMarkers(places, map) {
       scaledSize: new google.maps.Size(25, 25),
     }
     // 作成したimageを使ってマーカーを作成
-    new google.maps.Marker({
+    createMarker ({
       map,
       icon: image,
       title: place.name,
@@ -100,7 +110,7 @@ function createMarkers(places, map) {
     li.textContent = place.name;
     // #placesの子要素としてliを作成
     placesList.appendChild(li);
-    // 空の境界変数を取得し、すべてのマーカーを表示するlatとlngを指定
+    // 空の境界変数を取得し、マーカーを表示するlatとlngを指定
     bounds.extend(place.geometry.location);
   }
   // mapが全てのマーカーが表示されるようなサイズになる
