@@ -1,7 +1,5 @@
-function createMarker(options) {
-  let m = new google.maps.Marker(options);
-  return m;
-}
+// 作成したマーカーの情報を格納
+markers = []
 
 // マップを作成
 function initMap() {
@@ -19,11 +17,6 @@ function initMap() {
         map = new google.maps.Map(document.getElementById("map"), {
           center: mapLatLng,
           zoom: 17,
-        })
-        // マーカーの作成
-        createMarker ({
-          map: map,
-          position: mapLatLng
         })
       },
       // 取得失敗した場合
@@ -52,7 +45,12 @@ function initMap() {
 
 // 地図の移動、周辺情報の取得
 function codeAddress() {
-  // document.getElementById("map").innerHTML = "";
+
+  // すでに作成してあるマーカーを削除する
+  markers.forEach(function(d_marker, i){
+    d_marker.setMap(null);
+  });
+
   // id=addressのinputタグに記入された値（value）を取得
   let inputAddress = document.getElementById('address').value;
   let inputStoreName = document.getElementById('storeName').value;
@@ -62,11 +60,12 @@ function codeAddress() {
       // map.setCenterで地図が移動（location には緯度経度の値が含まれる）
       map.setCenter(results[0].geometry.location);
       // google.maps.MarkerでGoogleMap上の指定位置にマーカが立つ
-      createMarker({
+      center = new google.maps.Marker({
         // マーカーのオプション
         map: map,
         position: results[0].geometry.location
       });
+      markers.push(center);
       var service = new google.maps.places.PlacesService(map);
       service.textSearch({
         location: results[0].geometry.location,
@@ -99,12 +98,13 @@ function createMarkers(places, map) {
       scaledSize: new google.maps.Size(25, 25),
     }
     // 作成したimageを使ってマーカーを作成
-    createMarker ({
+    let marker = new google.maps.Marker ({
       map,
       icon: image,
       title: place.name,
       position: place.geometry.location,
     })
+    markers.push(marker);
     // 検索結果からli要素を作成（取得した施設のリスト）
     const li = document.createElement("li");
     li.textContent = place.name;
