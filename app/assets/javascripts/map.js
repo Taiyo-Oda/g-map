@@ -45,7 +45,9 @@ function initMap() {
 
 // 地図の移動、周辺情報の取得
 function codeAddress() {
-
+  
+  // 検索結果を削除する
+  document.getElementById("places").innerHTML = "";
   // すでに作成してあるマーカーを削除する
   markers.forEach(function(d_marker, i){
     d_marker.setMap(null);
@@ -66,14 +68,33 @@ function codeAddress() {
         position: results[0].geometry.location
       });
       markers.push(center);
-      var service = new google.maps.places.PlacesService(map);
+      let service = new google.maps.places.PlacesService(map);
+      let getNextPage;
+      let moreButton = document.getElementById("more");
+
+      moreButton.onclick = function () {
+        // moreButtonにdisabled属性を設定（disabled属性を設定するとその値は送信されなくなる）
+        moreButton.disabled = true;
+        // getNextPageが可能な場合
+        if (getNextPage) {
+          getNextPage();
+        }
+      }
+
       service.textSearch({
         location: results[0].geometry.location,
         radius: 500,
         query: inputStoreName
-      }, function(results, status) {
+      }, function(results, status, pagination) {
         if (status == google.maps.places.PlacesServiceStatus.OK) {
           createMarkers(results, map);
+          // hasNextPageはさらに結果が利用可能かどうかを示す
+          moreButton.disabled = !pagination.hasNextPage;
+          // さらに検索結果が表示可能な場合（pagination.hasNextPageがtrueの場合）
+          if (pagination.hasNextPage) {
+            // nextPage()は次の結果セットを返す関数
+            getNextPage = pagination.nextPage;
+          }
         }
       });
     } else {
@@ -116,33 +137,3 @@ function createMarkers(places, map) {
   // mapが全てのマーカーが表示されるようなサイズになる
   map.fitBounds(bounds);
 }
-
-// service = new google.maps.places.PlacesService(map)
-// let getNextPage;
-// let moreButton = document.getElementById("more");
-
-// moreButton.onclick = function () {
-//   // moreButtonにdisabled属性を設定（disabled属性を設定するとその値は送信されなくなる）
-//   moreButton.disabled = true;
-
-//   // getNextPageが可能な場合
-//   if (getNextPage) {
-//     getNextPage();
-//   }
-// }
-// 指定した地点の周辺の情報を取得する
-// service.nearbySearch(
-//   { location: mapLatLng, radius: 500, type: "store" },
-//   (results, status, pagination) => {
-//     if (status !== "OK") return;
-//     // 検索にヒットした施設にマーカーを設置
-//     createMarkers(results, map);
-//     // hasNextPageはさらに結果が利用可能かどうかを示す
-//     moreButton.disabled = !pagination.hasNextPage;
-//     // さらに検索結果が表示可能な場合（pagination.hasNextPageがtrueの場合）
-//     if (pagination.hasNextPage) {
-//       // nextPage()は次の結果セットを返す関数
-//       getNextPage = pagination.nextPage;
-//     }
-//   }
-// )
