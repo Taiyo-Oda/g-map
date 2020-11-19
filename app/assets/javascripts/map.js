@@ -45,20 +45,14 @@ function initMap() {
 
 // 地図の移動、周辺情報の取得
 function codeAddress() {
-  
-  // 検索結果を削除する
-  document.getElementById("places").innerHTML = "";
-  // すでに作成してあるマーカーを削除する
-  markers.forEach(function(d_marker, i){
-    d_marker.setMap(null);
-  });
-
-  // id=addressのinputタグに記入された値（value）を取得
+  // inputタグに記入された値（value）を取得
   let inputAddress = document.getElementById('address').value;
   let inputStoreName = document.getElementById('storeName').value;
   // ジオコーディングサービスにリクエストを行なう。コールバックには results と status コードの順で2つのパラメータが渡される。
   geocoder.geocode({'address': inputAddress}, function (results, status) {
     if (status == 'OK') {
+      // 関数呼び出し(マーカー削除)
+      deleteMarkers();
       // map.setCenterで地図が移動（location には緯度経度の値が含まれる）
       map.setCenter(results[0].geometry.location);
       // google.maps.MarkerでGoogleMap上の指定位置にマーカが立つ
@@ -67,7 +61,9 @@ function codeAddress() {
         map: map,
         position: results[0].geometry.location
       });
+      // 作成したマーカーの情報を配列に格納
       markers.push(center);
+
       let service = new google.maps.places.PlacesService(map);
       let getNextPage;
       let moreButton = document.getElementById("more");
@@ -75,10 +71,7 @@ function codeAddress() {
       moreButton.onclick = function () {
         // moreButtonにdisabled属性を設定（disabled属性を設定するとその値は送信されなくなる）
         moreButton.disabled = true;
-        // getNextPageが可能な場合
-        if (getNextPage) {
-          getNextPage();
-        }
+        getNextPage.nextPage();
       }
 
       service.textSearch({
@@ -87,13 +80,14 @@ function codeAddress() {
         query: inputStoreName
       }, function(results, status, pagination) {
         if (status == google.maps.places.PlacesServiceStatus.OK) {
+          // 関数呼び出し（マーカー作成）
           createMarkers(results, map);
           // hasNextPageはさらに結果が利用可能かどうかを示す
           moreButton.disabled = !pagination.hasNextPage;
           // さらに検索結果が表示可能な場合（pagination.hasNextPageがtrueの場合）
           if (pagination.hasNextPage) {
-            // nextPage()は次の結果セットを返す関数
-            getNextPage = pagination.nextPage;
+            // 変数に検索結果の追加情報を代入
+            getNextPage = pagination
           }
         }
       });
@@ -102,6 +96,7 @@ function codeAddress() {
     }
   });
 }
+
 
 // map上にマーカーを作成
 function createMarkers(places, map) {
@@ -125,6 +120,7 @@ function createMarkers(places, map) {
       title: place.name,
       position: place.geometry.location,
     })
+    // 作成したマーカーの情報を配列に格納
     markers.push(marker);
     // 検索結果からli要素を作成（取得した施設のリスト）
     const li = document.createElement("li");
@@ -136,4 +132,15 @@ function createMarkers(places, map) {
   }
   // mapが全てのマーカーが表示されるようなサイズになる
   map.fitBounds(bounds);
+}
+
+
+// 取得済みの情報を削除
+function deleteMarkers() {
+  // 検索結果を削除する
+  document.getElementById("places").innerHTML = "";
+  // すでに作成してあるマーカーを削除する
+  markers.forEach(function(d_marker, i){
+    d_marker.setMap(null);
+  });
 }
