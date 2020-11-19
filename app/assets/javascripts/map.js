@@ -1,5 +1,7 @@
 // 作成したマーカーの情報を格納
 markers = []
+// 検索結果を格納
+lists = []
 
 // マップを作成
 function initMap() {
@@ -80,8 +82,16 @@ function codeAddress() {
         query: inputStoreName
       }, function(results, status, pagination) {
         if (status == google.maps.places.PlacesServiceStatus.OK) {
+          // 配列に検索結果を格納
+          lists = lists.concat(results);
+          // 評価の高い順に並べ替える
+          lists.sort(function(a, b) {
+            return b.rating - a.rating;
+          });
+          // 新しくulを作り直す
+          document.getElementById("places").innerHTML = "";
           // 関数呼び出し（マーカー作成）
-          createMarkers(results, map);
+          createMarkers(lists, map);
           // hasNextPageはさらに結果が利用可能かどうかを示す
           moreButton.disabled = !pagination.hasNextPage;
           // さらに検索結果が表示可能な場合（pagination.hasNextPageがtrueの場合）
@@ -124,7 +134,7 @@ function createMarkers(places, map) {
     markers.push(marker);
     // 検索結果からli要素を作成（取得した施設のリスト）
     const li = document.createElement("li");
-    li.textContent = place.name;
+    li.textContent = place.name + place.rating;
     // #placesの子要素としてliを作成
     placesList.appendChild(li);
     // 空の境界変数を取得し、マーカーを表示するlatとlngを指定
@@ -138,6 +148,7 @@ function createMarkers(places, map) {
 // 取得済みの情報を削除
 function deleteMarkers() {
   // 検索結果を削除する
+  lists.length = 0;
   document.getElementById("places").innerHTML = "";
   // すでに作成してあるマーカーを削除する
   markers.forEach(function(d_marker, i){
