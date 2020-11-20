@@ -5,8 +5,6 @@ lists = []
 
 // マップを作成
 function initMap() {
-  // geocoderを初期化しジオコーディングサービスにアクセス
-  geocoder = new google.maps.Geocoder()
   // Geolocation APIに対応している場合
   if (navigator.geolocation) {
     // 現在地を取得
@@ -14,7 +12,7 @@ function initMap() {
       // 取得成功した場合
       function(position) {
         // 緯度・経度を変数に格納
-        let mapLatLng = new google.maps.LatLng(position.coords.latitude, position.coords.longitude);
+        mapLatLng = new google.maps.LatLng(position.coords.latitude, position.coords.longitude);
         // マップオブジェクト作成
         map = new google.maps.Map(document.getElementById("map"), {
           center: mapLatLng,
@@ -47,21 +45,29 @@ function initMap() {
 
 // 地図の移動、周辺情報の取得
 function codeAddress() {
+  // geocoderを初期化しジオコーディングサービスにアクセス
+  geocoder = new google.maps.Geocoder()
   // inputタグに記入された値（value）を取得
   let inputAddress = document.getElementById('address').value;
   let inputStoreName = document.getElementById('storeName').value;
+  if (inputAddress.match('現在地')) {
+    var address = {location: mapLatLng}
+  } else {
+    var address = {'address': inputAddress}
+  }
   // ジオコーディングサービスにリクエストを行なう。コールバックには results と status コードの順で2つのパラメータが渡される。
-  geocoder.geocode({'address': inputAddress}, function (results, status) {
+  geocoder.geocode(address, function (results, status) {
     if (status == 'OK') {
+      let location = results[0].geometry.location
       // 関数呼び出し(マーカー削除)
       deleteMarkers();
       // map.setCenterで地図が移動（location には緯度経度の値が含まれる）
-      map.setCenter(results[0].geometry.location);
+      map.setCenter(location);
       // google.maps.MarkerでGoogleMap上の指定位置にマーカが立つ
-      center = new google.maps.Marker({
+      let center = new google.maps.Marker({
         // マーカーのオプション
         map: map,
-        position: results[0].geometry.location
+        position: location
       });
       // 作成したマーカーの情報を配列に格納
       markers.push(center);
@@ -77,7 +83,7 @@ function codeAddress() {
       }
 
       service.textSearch({
-        location: results[0].geometry.location,
+        location: location,
         radius: 500,
         query: inputStoreName
       }, function(results, status, pagination) {
