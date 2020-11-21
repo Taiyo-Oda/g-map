@@ -94,6 +94,7 @@ function codeAddress() {
           lists.sort(function(a, b) {
             return b.rating - a.rating;
           });
+          distance(inputAddress, location, lists);
           // 新しくulを作り直す
           document.getElementById("places").innerHTML = "";
           // 関数呼び出し（マーカー作成）
@@ -160,4 +161,31 @@ function deleteMarkers() {
   markers.forEach(function(d_marker, i){
     d_marker.setMap(null);
   });
+}
+
+
+function distance(inputAddress, location, destinations) {
+  // DistanceMatrix サービスを生成
+  var distanceMatrixService = new google.maps.DistanceMatrixService();
+  for (let i = 0, destination; (destination = destinations[i]); i++) {
+    // 出発点
+    var orign1 = location;
+    var orign2 = inputAddress;
+    // 到着点
+    var destination1 = destination.geometry.location;
+    var destination2 = destination.name;
+    // DistanceMatrix の実行
+    distanceMatrixService.getDistanceMatrix({
+      origins: [orign1, orign2], // 出発地点
+      destinations: [destination1, destination2], // 到着地点
+      travelMode: google.maps.TravelMode.DRIVING, // 車モード or 徒歩モード
+    }, function (response, status) {
+      if (status == google.maps.DistanceMatrixStatus.OK) {
+        result = response.rows[0].elements[0];
+        var distance = result.distance.text;
+        var duration = result.duration.text;
+        console.log(distance, duration)
+      }
+    });
+  }
 }
