@@ -43,13 +43,14 @@ function initMap() {
   }
 }
 
+
 // 地図の移動、周辺情報の取得
 function codeAddress() {
   // geocoderを初期化しジオコーディングサービスにアクセス
   geocoder = new google.maps.Geocoder()
   // inputタグに記入された値（value）を取得
-  let inputAddress = document.getElementById('address').value;
-  let inputStoreName = document.getElementById('storeName').value;
+  inputAddress = document.getElementById('address').value;
+  inputStoreName = document.getElementById('storeName').value;
   if (inputAddress.match('現在地')) {
     var address = {location: mapLatLng}
   } else {
@@ -58,16 +59,16 @@ function codeAddress() {
   // ジオコーディングサービスにリクエストを行なう。コールバックには results と status コードの順で2つのパラメータが渡される。
   geocoder.geocode(address, function (results, status) {
     if (status == 'OK') {
-      let location = results[0].geometry.location
+      loc = results[0].geometry.location
       // 関数呼び出し(マーカー削除)
       deleteMarkers();
       // map.setCenterで地図が移動（location には緯度経度の値が含まれる）
-      map.setCenter(location);
+      map.setCenter(loc);
       // google.maps.MarkerでGoogleMap上の指定位置にマーカが立つ
       let center = new google.maps.Marker({
         // マーカーのオプション
         map: map,
-        position: location
+        position: loc
       });
       // 作成したマーカーの情報を配列に格納
       markers.push(center);
@@ -83,7 +84,7 @@ function codeAddress() {
       }
 
       service.textSearch({
-        location: location,
+        location: loc,
         radius: 500,
         query: inputStoreName
       }, function(results, status, pagination) {
@@ -94,11 +95,13 @@ function codeAddress() {
           lists.sort(function(a, b) {
             return b.rating - a.rating;
           });
-          distance(inputAddress, location, lists);
+          console.log(lists)
           // 新しくulを作り直す
           document.getElementById("places").innerHTML = "";
           // 関数呼び出し（マーカー作成）
           createMarkers(lists, map);
+           // 表示するリストを作成
+          createLists(lists);
           // hasNextPageはさらに結果が利用可能かどうかを示す
           moreButton.disabled = !pagination.hasNextPage;
           // さらに検索結果が表示可能な場合（pagination.hasNextPageがtrueの場合）
@@ -119,7 +122,7 @@ function codeAddress() {
 function createMarkers(places, map) {
   // LatLngBoundsクラスは境界(範囲)のインスタンスを作成する（ここでは空の境界変数を作成）
   const bounds = new google.maps.LatLngBounds();
-  const placesList = document.getElementById("places");
+  // const placesList = document.getElementById("places");
   // textSearchした店のマーカーを１つずつ作成
   for (let i = 0, place; (place = places[i]); i++) {
     // 地図上に表示するMarkerのimageを作成
@@ -139,17 +142,72 @@ function createMarkers(places, map) {
     })
     // 作成したマーカーの情報を配列に格納
     markers.push(marker);
-    // 検索結果からli要素を作成（取得した施設のリスト）
-    const li = document.createElement("li");
-    li.textContent = place.name + place.rating;
-    // #placesの子要素としてliを作成
-    placesList.appendChild(li);
     // 空の境界変数を取得し、マーカーを表示するlatとlngを指定
     bounds.extend(place.geometry.location);
   }
   // mapが全てのマーカーが表示されるようなサイズになる
   map.fitBounds(bounds);
 }
+
+
+
+function createLists(places) {
+  var ds = [];
+  const placesList = document.getElementById("places");
+  // DistanceMatrix サービスを生成
+  var distanceMatrixService = new google.maps.DistanceMatrixService();
+  for (let i = 0, destination; (destination = places[i]); i++) { 
+    var d = destination.geometry.location
+    ds.push(d);
+  }
+  // DistanceMatrix の実行
+  distanceMatrixService.getDistanceMatrix({ 
+    origins: [loc], // 出発地点
+    destinations: ds, // 到着地点
+    travelMode: google.maps.TravelMode.WALKING, //徒歩モード
+  }, function (response, status) {
+    console.log(status)
+    if (status == google.maps.DistanceMatrixStatus.OK) {
+      result = response.rows[0].elements;
+      for (let j = 0; j < places.length; j++) {
+        let li = document.createElement("li");
+        li.textContent = places[j].name + places[j].rating + result[j].distance.text + result[j].duration.text;
+        // #placesの子要素としてliを作成
+        placesList.appendChild(li);
+      }
+    }
+  });
+}
+
+
+// // 目的地までの時間と距離を計算
+// function createLists(places) {
+//   const placesList = document.getElementById("places");
+//   // DistanceMatrix サービスを生成
+//   var distanceMatrixService = new google.maps.DistanceMatrixService();
+//   for (let i = 0, destination; (destination = places[i]); i++) { //ここまではランキング通り
+//     // DistanceMatrix の実行
+//     distanceMatrixService.getDistanceMatrix({ //この中で順番が変わってる
+//       origins: [loc], // 出発地点
+//       destinations: [destination.geometry.location], // 到着地点
+//       travelMode: google.maps.TravelMode.DRIVING, // 車モード or 徒歩モード
+//     }, function (response, status) {
+//       if (status == google.maps.DistanceMatrixStatus.OK) {
+//         var result = response.rows[0].elements[0];
+//         var distance = result.distance.text;
+//         var duration = result.duration.text;
+//       }
+//       console.log(destination)
+//     });
+//   }
+//   // 検索結果からli要素を作成（取得した施設のリスト）
+//   // let li = document.createElement("li");
+//   // c.forEach(function(d){
+//   //   li.textContent = d;
+//   // });
+//   // // #placesの子要素としてliを作成
+//   // placesList.appendChild(li);
+// }
 
 
 // 取得済みの情報を削除
@@ -161,31 +219,4 @@ function deleteMarkers() {
   markers.forEach(function(d_marker, i){
     d_marker.setMap(null);
   });
-}
-
-
-function distance(inputAddress, location, destinations) {
-  // DistanceMatrix サービスを生成
-  var distanceMatrixService = new google.maps.DistanceMatrixService();
-  for (let i = 0, destination; (destination = destinations[i]); i++) {
-    // 出発点
-    var orign1 = location;
-    var orign2 = inputAddress;
-    // 到着点
-    var destination1 = destination.geometry.location;
-    var destination2 = destination.name;
-    // DistanceMatrix の実行
-    distanceMatrixService.getDistanceMatrix({
-      origins: [orign1, orign2], // 出発地点
-      destinations: [destination1, destination2], // 到着地点
-      travelMode: google.maps.TravelMode.DRIVING, // 車モード or 徒歩モード
-    }, function (response, status) {
-      if (status == google.maps.DistanceMatrixStatus.OK) {
-        result = response.rows[0].elements[0];
-        var distance = result.distance.text;
-        var duration = result.duration.text;
-        console.log(distance, duration)
-      }
-    });
-  }
 }
