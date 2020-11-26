@@ -5,8 +5,6 @@ lists = []
 
 // マップを作成
 function initMap() {
-  // geocoderを初期化しジオコーディングサービスにアクセス
-  geocoder = new google.maps.Geocoder()
   // Geolocation APIに対応している場合
   if (navigator.geolocation) {
     // 現在地を取得
@@ -14,7 +12,7 @@ function initMap() {
       // 取得成功した場合
       function(position) {
         // 緯度・経度を変数に格納
-        let mapLatLng = new google.maps.LatLng(position.coords.latitude, position.coords.longitude);
+        mapLatLng = new google.maps.LatLng(position.coords.latitude, position.coords.longitude);
         // マップオブジェクト作成
         map = new google.maps.Map(document.getElementById("map"), {
           center: mapLatLng,
@@ -45,23 +43,32 @@ function initMap() {
   }
 }
 
+
 // 地図の移動、周辺情報の取得
 function codeAddress() {
+  // geocoderを初期化しジオコーディングサービスにアクセス
+  geocoder = new google.maps.Geocoder()
   // inputタグに記入された値（value）を取得
-  let inputAddress = document.getElementById('address').value;
-  let inputStoreName = document.getElementById('storeName').value;
+  inputAddress = document.getElementById('address').value;
+  inputStoreName = document.getElementById('storeName').value;
+  if (inputAddress.match('現在地')) {
+    var address = {location: mapLatLng}
+  } else {
+    var address = {'address': inputAddress}
+  }
   // ジオコーディングサービスにリクエストを行なう。コールバックには results と status コードの順で2つのパラメータが渡される。
-  geocoder.geocode({'address': inputAddress}, function (results, status) {
+  geocoder.geocode(address, function (results, status) {
     if (status == 'OK') {
+      loc = results[0].geometry.location
       // 関数呼び出し(マーカー削除)
       deleteMarkers();
       // map.setCenterで地図が移動（location には緯度経度の値が含まれる）
-      map.setCenter(results[0].geometry.location);
+      map.setCenter(loc);
       // google.maps.MarkerでGoogleMap上の指定位置にマーカが立つ
-      center = new google.maps.Marker({
+      let center = new google.maps.Marker({
         // マーカーのオプション
         map: map,
-        position: results[0].geometry.location
+        position: loc
       });
       // 作成したマーカーの情報を配列に格納
       markers.push(center);
@@ -77,7 +84,7 @@ function codeAddress() {
       }
 
       service.textSearch({
-        location: results[0].geometry.location,
+        location: loc,
         radius: 500,
         query: inputStoreName
       }, function(results, status, pagination) {
@@ -92,6 +99,8 @@ function codeAddress() {
           document.getElementById("places").innerHTML = "";
           // 関数呼び出し（マーカー作成）
           createMarkers(lists, map);
+            // 表示するリストを作成
+          createLists(lists);
           // hasNextPageはさらに結果が利用可能かどうかを示す
           moreButton.disabled = !pagination.hasNextPage;
           // さらに検索結果が表示可能な場合（pagination.hasNextPageがtrueの場合）
@@ -112,7 +121,7 @@ function codeAddress() {
 function createMarkers(places, map) {
   // LatLngBoundsクラスは境界(範囲)のインスタンスを作成する（ここでは空の境界変数を作成）
   const bounds = new google.maps.LatLngBounds();
-  const placesList = document.getElementById("places");
+  // const placesList = document.getElementById("places");
   // textSearchした店のマーカーを１つずつ作成
   for (let i = 0, place; (place = places[i]); i++) {
     // 地図上に表示するMarkerのimageを作成
@@ -132,16 +141,97 @@ function createMarkers(places, map) {
     })
     // 作成したマーカーの情報を配列に格納
     markers.push(marker);
-    // 検索結果からli要素を作成（取得した施設のリスト）
-    const li = document.createElement("li");
-    li.textContent = place.name + place.rating;
-    // #placesの子要素としてliを作成
-    placesList.appendChild(li);
     // 空の境界変数を取得し、マーカーを表示するlatとlngを指定
     bounds.extend(place.geometry.location);
   }
   // mapが全てのマーカーが表示されるようなサイズになる
   map.fitBounds(bounds);
+}
+
+
+// 表示する店のリストを作成
+function createLists(places) {
+  let places1;
+  let places2;
+  let places3;
+  let dLocations = [];
+  const placesList = document.getElementById("places");
+  // DistanceMatrix サービスを生成
+  let distanceMatrixService = new google.maps.DistanceMatrixService();
+  for (let i = 0, destination; (destination = places[i]); i++) { 
+    var dLocation = destination.geometry.location
+    dLocations.push(dLocation);
+  }
+  // DistanceMatrix の実行
+  switch (true) {
+    case dLocations.length <= 25:
+      distanceMatrixService.getDistanceMatrix({ 
+        origins: [loc], // 出発地点
+        destinations: dLocations, // 到着地点
+        travelMode: google.maps.TravelMode.WALKING, //徒歩モード
+      }, function (response, status) {
+        if (status == google.maps.DistanceMatrixStatus.OK) {
+          result = response.rows[0].elements;
+          for (let j = 0; j < result.length; j++) {
+            let li = document.createElement("li");
+            li.textContent = places[j].name + " " + places[j].rating + " " + result[j].distance.text + " " + result[j].duration.text;
+            // #placesの子要素としてliを作成
+            placesList.appendChild(li);
+          }
+        }
+      });
+      break;
+    case dLocations.length > 25 && 40 >= dLocations.length:
+      var dss = [dLocations.slice(0,20), dLocations.slice(20,40)]
+      places1 = places.slice(0,20);
+      places2 = places.slice(20,40);
+      console.log(places1, places2)
+      var pss= [places1, places2]
+      for (let i = 0; i < dss.length; i++) {
+        distanceMatrixService.getDistanceMatrix({ 
+          origins: [loc], // 出発地点
+          destinations: dss[i], // 到着地点
+          travelMode: google.maps.TravelMode.WALKING, //徒歩モード
+        }, function (response, status) {
+          if (status == google.maps.DistanceMatrixStatus.OK) {
+            result = response.rows[0].elements;
+            for (let j = 0; j < result.length; j++) {
+              let li = document.createElement("li");
+              li.textContent = pss[i][j].name + " " + pss[i][j].rating + " " + result[j].distance.text + " " + result[j].duration.text;
+              // #placesの子要素としてliを作成
+              placesList.appendChild(li);
+            }
+          }
+        });
+      }
+      break;
+    case dLocations.length > 40:
+      var dss = [dLocations.slice(0,20), dLocations.slice(20,40), dLocations.slice(40,60)]
+      places1 = places.slice(0,20);
+      places2 = places.slice(20,40);
+      places3 = places.slice(40,60);
+      var pss= [places1, places2, places3]
+      for (let i = 0; i < dss.length; i++) {
+        distanceMatrixService.getDistanceMatrix({ 
+          origins: [loc], // 出発地点
+          destinations: dss[i], // 到着地点
+          travelMode: google.maps.TravelMode.WALKING, //徒歩モード
+        }, function (response, status) {
+          if (status == google.maps.DistanceMatrixStatus.OK) {
+            result = response.rows[0].elements;
+            for (let j = 0; j < result.length; j++) {
+              let li = document.createElement("li");
+              li.textContent = pss[i][j].name + " " + pss[i][j].rating + " " + result[j].distance.text + " " + result[j].duration.text;
+              // #placesの子要素としてliを作成
+              placesList.appendChild(li);
+            }
+          }
+        });
+      }
+      break;
+    default:
+      console.log('その他')
+  }
 }
 
 
@@ -155,3 +245,4 @@ function deleteMarkers() {
     d_marker.setMap(null);
   });
 }
+
