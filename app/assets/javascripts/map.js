@@ -172,12 +172,19 @@ function createLists(places) {
       }, function (response, status) {
         if (status == google.maps.DistanceMatrixStatus.OK) {
           result = response.rows[0].elements;
+          var resultHTML = "<ol>";
           for (let j = 0; j < result.length; j++) {
-            let li = document.createElement("li");
-            li.textContent = places[j].name + " " + places[j].rating + " " + result[j].distance.text + " " + result[j].duration.text;
-            // #placesの子要素としてliを作成
-            placesList.appendChild(li);
+            console.log(places[j])
+            var content = "【" + places[j].rating + "】 " + places[j].name  + " " + result[j].distance.text + " " + result[j].duration.text;
+            resultHTML += "<li>";
+            resultHTML += content;
+            resultHTML += "<a href=\"https://maps.google.co.jp/maps?q=" + encodeURIComponent(places[j].name + " " + places[j].formatted_address) + "&z=15&iwloc=A\"";
+            resultHTML += " target=\"_blank\">⇒詳細表示</a><br />";
+            resultHTML += "</li>";
           }
+          resultHTML += "</ol>";
+          //結果表示
+          document.getElementById("places").innerHTML = resultHTML;
         }
       });
       break;
