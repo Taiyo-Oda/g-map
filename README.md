@@ -1,24 +1,28 @@
-# README
+こちらは現在開発途中のものです。
 
-This README would normally document whatever steps are necessary to get the
-application up and running.
+<br>
 
-Things you may want to cover:
+# Gmap
 
-* Ruby version
+GoogleMapの検索結果から自動でランキングを作成できます。
 
-* System dependencies
+<br>
 
-* Configuration
+# Demo
 
-* Database creation
+https://i.gyazo.com/fc76ce0bf1ed38e2e7f6f89d7fa20493.gif
 
-* Database initialization
+<br>
 
-* How to run the test suite
+# 制作意図
 
-* Services (job queues, cache servers, search engines, etc.)
+本家googlemapにソート機能が備わっていないため、以前から不便に感じることがあり、自分で作成してみようと思ったのがきっかけでした。
+googleが提供するAPIは様々な場面で用いられており、技術的にも今後、応用がしやすいです。APIは開発の効率化やコストの削減のため、今後使用する機会があると思うので、一度触れておこうと思いました。
+また、jsでの実装がメインとなるので、jsの理解が不十分だった私にとって、いい教材になるとも思いました。
 
-* Deployment instructions
+<br>
 
-* ...
+# 実装予定の内容
+
+・ソートの条件のカスタマイズができるようにする（距離、営業時間、コメント数 etc…)
+・UIの改善（スマートフォンでの使用をメインに考えています）
