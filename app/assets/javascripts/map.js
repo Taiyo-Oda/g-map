@@ -3,6 +3,8 @@ markers = []
 // 検索結果を格納
 lists = []
 
+let activeInfoWindow;
+
 // マップを作成
 function initMap() {
   // Geolocation APIに対応している場合
@@ -97,10 +99,10 @@ function codeAddress() {
           });
           // 新しくulを作り直す
           document.getElementById("places").innerHTML = "";
+          // 表示するリストを作成
+          createLists(lists);
           // 関数呼び出し（マーカー作成）
           createMarkers(lists, map);
-            // 表示するリストを作成
-          createLists(lists);
           // hasNextPageはさらに結果が利用可能かどうかを示す
           moreButton.disabled = !pagination.hasNextPage;
           // さらに検索結果が表示可能な場合（pagination.hasNextPageがtrueの場合）
@@ -114,38 +116,6 @@ function codeAddress() {
       alert('次の理由でジオコードが成功しませんでした: ' + status);
     }
   });
-}
-
-
-// map上にマーカーを作成
-function createMarkers(places, map) {
-  // LatLngBoundsクラスは境界(範囲)のインスタンスを作成する（ここでは空の境界変数を作成）
-  const bounds = new google.maps.LatLngBounds();
-  // const placesList = document.getElementById("places");
-  // textSearchした店のマーカーを１つずつ作成
-  for (let i = 0, place; (place = places[i]); i++) {
-    // 地図上に表示するMarkerのimageを作成
-    const image = {
-      url: place.icon,
-      size: new google.maps.Size(71, 71),
-      origin: new google.maps.Point(0, 0),
-      anchor: new google.maps.Point(17, 34),
-      scaledSize: new google.maps.Size(25, 25),
-    }
-    // 作成したimageを使ってマーカーを作成
-    let marker = new google.maps.Marker ({
-      map,
-      icon: image,
-      title: place.name,
-      position: place.geometry.location,
-    })
-    // 作成したマーカーの情報を配列に格納
-    markers.push(marker);
-    // 空の境界変数を取得し、マーカーを表示するlatとlngを指定
-    bounds.extend(place.geometry.location);
-  }
-  // mapが全てのマーカーが表示されるようなサイズになる
-  map.fitBounds(bounds);
 }
 
 
@@ -174,12 +144,18 @@ function createLists(places) {
           result = response.rows[0].elements;
           var resultHTML = "<ol>";
           for (let j = 0; j < result.length; j++) {
-            console.log(places[j])
-            var content = "【" + places[j].rating + "】 " + places[j].name  + " " + result[j].distance.text + " " + result[j].duration.text;
+            let content = "【" + places[j].rating + "】 " + places[j].name  + " " + result[j].distance.text + " " + result[j].duration.text;
+            var name = places[j].name;
+            var url = encodeURIComponent(places[j].name + " " + places[j].formatted_address);
             resultHTML += "<li>";
+            resultHTML += "<a href=\"javascript: void(0);\"";
+            resultHTML += "onclick=\"createInfo(";
+            resultHTML += "'" + name + "',";
+            resultHTML += "'" + url + "',";
+            resultHTML += j + ")\"";
+            resultHTML += "id=searchInfo>";
             resultHTML += content;
-            resultHTML += "<a href=\"https://maps.google.co.jp/maps?q=" + encodeURIComponent(places[j].name + " " + places[j].formatted_address) + "&z=15&iwloc=A\"";
-            resultHTML += " target=\"_blank\">⇒詳細表示</a><br />";
+            resultHTML += "</a>";
             resultHTML += "</li>";
           }
           resultHTML += "</ol>";
@@ -192,7 +168,6 @@ function createLists(places) {
       var dss = [dLocations.slice(0,20), dLocations.slice(20,40)]
       places1 = places.slice(0,20);
       places2 = places.slice(20,40);
-      console.log(places1, places2)
       var pss= [places1, places2]
       for (let i = 0; i < dss.length; i++) {
         distanceMatrixService.getDistanceMatrix({ 
@@ -202,12 +177,29 @@ function createLists(places) {
         }, function (response, status) {
           if (status == google.maps.DistanceMatrixStatus.OK) {
             result = response.rows[0].elements;
+            // var resultHTML = "<ol>";
             for (let j = 0; j < result.length; j++) {
               let li = document.createElement("li");
               li.textContent = pss[i][j].name + " " + pss[i][j].rating + " " + result[j].distance.text + " " + result[j].duration.text;
               // #placesの子要素としてliを作成
               placesList.appendChild(li);
+              // let content = "【" + pss[i][j].rating + "】 " + pss[i][j].name  + " " + result[j].distance.text + " " + result[j].duration.text;
+              // var name = pss[i][j].name;
+              // var url = encodeURIComponent(pss[i][j].name + " " + pss[i][j].formatted_address);
+              // resultHTML += "<li>";
+              // resultHTML += "<a href=\"javascript: void(0);\"";
+              // resultHTML += "onclick=\"createInfo(";
+              // resultHTML += "'" + name + "',";
+              // resultHTML += "'" + url + "',";
+              // resultHTML += j + ")\"";
+              // resultHTML += "id=searchInfo>";
+              // resultHTML += content;
+              // resultHTML += "</a>";
+              // resultHTML += "</li>";
             }
+            // resultHTML += "</ol>";
+            // // 結果表示
+            // document.getElementById("places").innerHTML = resultHTML;
           }
         });
       }
@@ -242,6 +234,64 @@ function createLists(places) {
 }
 
 
+// map上にマーカーを作成
+function createMarkers(places, map) {
+  // LatLngBoundsクラスは境界(範囲)のインスタンスを作成する（ここでは空の境界変数を作成）
+  const bounds = new google.maps.LatLngBounds();
+  // const placesList = document.getElementById("places");
+  // textSearchした店のマーカーを１つずつ作成
+  for (let i = 0, place; (place = places[i]); i++) {
+    // 地図上に表示するMarkerのimageを作成
+    const image = {
+      url: place.icon,
+      size: new google.maps.Size(71, 71),
+      origin: new google.maps.Point(0, 0),
+      anchor: new google.maps.Point(17, 34),
+      scaledSize: new google.maps.Size(25, 25),
+    }
+    // 作成したimageを使ってマーカーを作成
+    marker = new google.maps.Marker ({
+      map,
+      // icon: image,
+      animation: google.maps.Animation.DROP,
+      title: place.name,
+      position: place.geometry.location,
+    })
+    // 作成したマーカーの情報を配列に格納
+    markers.push(marker);
+    // 空の境界変数を取得し、マーカーを表示するlatとlngを指定
+    bounds.extend(place.geometry.location);
+  }
+  // mapが全てのマーカーが表示されるようなサイズになる
+  map.fitBounds(bounds);
+}
+
+
+// 情報窓の表示
+function createInfo(name, url, j) {
+  const contentString =
+    '<div id="content">' +
+    '<div id="siteNotice">' +
+    "</div>" +
+    '<h3 id="firstHeading" class="firstHeading">' + name + '</h3>' +
+    '<div id="bodyContent">' +
+    "<p><b>Uluru</b>, txit</p>" +
+    "<a href=\"https://maps.google.co.jp/maps?q=" + url + "&z=15&iwloc=A\"target=\"_blank\">" + "詳細" +
+    "</a><br />"
+    "</div>" +
+    "</div>";
+
+  j = j + 1
+  const infowindow = new google.maps.InfoWindow({
+    content: contentString,
+  });
+
+  if (activeInfoWindow) { activeInfoWindow.close();}
+  infowindow.open(map, markers[j]);
+  activeInfoWindow = infowindow;
+}
+
+
 // 取得済みの情報を削除
 function deleteMarkers() {
   // 検索結果を削除する
@@ -252,4 +302,3 @@ function deleteMarkers() {
     d_marker.setMap(null);
   });
 }
-
